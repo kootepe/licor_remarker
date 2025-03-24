@@ -2,6 +2,7 @@ import json
 import time
 import datetime
 import logging
+import threading
 from logging.handlers import TimedRotatingFileHandler
 import paho.mqtt.client as mqtt
 
@@ -13,32 +14,37 @@ with open("config.json") as f:
 
 # ---------- Load remarks from file ----------
 def load_remarks(filepath="remarks.txt"):
-    remarks = []
+    schedule = []
     with open(filepath, "r") as f:
         for line in f:
-            parts = line.strip().split("\t")
+            parts = line.strip().split()
             if not parts:
                 continue
             try:
-                t = datetime.datetime.strptime(parts[0], "%H:%M:%S").time()
-                remarks.append((t, parts[-1]))
+                timestamp = datetime.datetime.strptime(
+                    parts[0], "%H:%M:%S"
+                ).time()
+                message = parts[-1]
+                schedule.append((timestamp, message))
             except ValueError:
                 continue
-    return remarks
+    return sorted(schedule, key=lambda x: x[0])
 
 
-# ---------- Find latest remark for current time ----------
-def get_current_remark(remarks):
+# ---------- Get current remark based on time ----------
+def get_current_scheduled_remark(remarks):
     now = datetime.datetime.now().time()
-    last_remark = None
+    current_remark = None
     for t, msg in remarks:
         if t <= now:
-            last_remark = msg
-    return last_remark
+            current_remark = msg
+        else:
+            break
+    return current_remark
 
 
-# ---------- Publish message ----------
-def publish_remark(ip, topic, message):
+# ---------- Threaded MQTT Publisher ----------
+def publish_to_licor(ip, topic, message, licor_name):
     try:
         client = mqtt.Client()
         client.connect(ip, 1883, 60)
@@ -48,22 +54,32 @@ def publish_remark(ip, topic, message):
         time.sleep(1)
         client.loop_stop()
         client.disconnect()
-        logger.info(f"Published remark to {ip} at {topic}: {message}")
+        logger.info(f"Published '{message}' to {ip} ({licor_name})")
     except Exception as e:
-        logger.error(f"Failed to publish to {ip} at {topic}: {e}")
+        logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
 
 
-# ---------- Send remarks to all LICOR devices ----------
-def send_remarks_to_all(remarks):
-    remark = get_current_remark(remarks)
-    if not remark:
+# ---------- Publish current remark to all LICORs in threads ----------
+def publish_remark(remarks):
+    message = get_current_scheduled_remark(remarks)
+    if not message:
         logger.warning("No valid remark found for current time.")
         return
 
+    threads = []
     for licor_name, licor_config in licors.items():
         ip = licor_config.get("IP")
         topic = "licor/niobrara/system/log_remark"
-        publish_remark(ip, topic, remark)
+        thread = threading.Thread(
+            target=publish_to_licor,
+            args=(ip, topic, message, licor_name),
+            daemon=True,
+        )
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
 
 
 # ---------- Logger Setup ----------
@@ -81,9 +97,16 @@ def init_logger(log_level="info"):
     return logger
 
 
-# ---------- Run ----------
+# ---------- Main Loop ----------
 if __name__ == "__main__":
     logger = init_logger()
-    remarks = load_remarks("D:\Soft\ACW\protocol.ini")
-    send_remarks_to_all(remarks)
+    remarks = load_remarks("remarks.txt")
+
+    logger.info("Started threaded remark publisher (every 5 seconds).")
+
+    try:
+        while True:
+            publish_remark(remarks)
+    except KeyboardInterrupt:
+        logger.info("Stopped remark publisher.")
 
