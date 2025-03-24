@@ -52,11 +52,15 @@ def publish_to_licor(ip, topic, message, licor_name):
         client = mqtt.Client()
         client.connect(ip, 1883, 60)
         client.loop_start()
+        message = get_current_scheduled_remark(remarks)
+        if not message:
+            logger.warning("No valid remark found for current time.")
+            return
         time.sleep(1)
         client.publish(topic, message)
         time.sleep(1)
-        client.loop_stop()
-        client.disconnect()
+        # client.loop_stop()
+        # client.disconnect()
         logger.info(f"Published '{message}' to {ip} ({licor_name})")
     except Exception as e:
         logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
@@ -64,18 +68,14 @@ def publish_to_licor(ip, topic, message, licor_name):
 
 # ---------- Publish current remark to all LICORs in threads ----------
 def publish_remark(remarks):
-    message = get_current_scheduled_remark(remarks)
-    if not message:
-        logger.warning("No valid remark found for current time.")
-        return
-
     threads = []
     for licor_name, licor_config in licors.items():
         ip = licor_config.get("IP")
         topic = "licor/niobrara/system/log_remark"
+        path = protocol_path
         thread = threading.Thread(
             target=publish_to_licor,
-            args=(ip, topic, message, licor_name),
+            args=(ip, topic, licor_name, path),
             daemon=True,
         )
         threads.append(thread)
