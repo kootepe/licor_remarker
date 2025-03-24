@@ -9,9 +9,10 @@ import paho.mqtt.client as mqtt
 
 # ---------- Load LICOR config ----------
 with open("config.json") as f:
-    licors = json.load(f)["INSTRUMENTS"]
-    print(json.load(f)["PROTOCOL"])
-    protocol_file = json.load(f)["PROTOCOL"]["FILE"]
+    config = json.load(f)
+
+licors = config["INSTRUMENTS"]
+protocol_path = config["PROTOCOL"]["FILE"]
 
 
 # ---------- Load remarks from file ----------
@@ -102,7 +103,7 @@ def init_logger(log_level="info"):
 # ---------- Main Loop ----------
 if __name__ == "__main__":
     logger = init_logger()
-    remarks = load_remarks(protocol_file)
+    remarks = load_remarks(protocol_path)
 
     logger.info("Started threaded remark publisher.")
 
