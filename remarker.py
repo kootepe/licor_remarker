@@ -102,11 +102,10 @@ if __name__ == "__main__":
     logger = init_logger()
     remarks = load_remarks("remarks.txt")
 
-    logger.info("Started threaded remark publisher (every 5 seconds).")
+    logger.info("Started threaded remark publisher.")
 
     try:
         while True:
             publish_remark(remarks)
     except KeyboardInterrupt:
         logger.info("Stopped remark publisher.")
-
