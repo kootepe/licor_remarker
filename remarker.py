@@ -16,7 +16,7 @@ def load_remarks(filepath="remarks.txt"):
     remarks = []
     with open(filepath, "r") as f:
         for line in f:
-            parts = line.strip().split()
+            parts = line.strip().split("\t")
             if not parts:
                 continue
             try:
