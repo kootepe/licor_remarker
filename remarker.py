@@ -10,6 +10,7 @@ import paho.mqtt.client as mqtt
 # ---------- Load LICOR config ----------
 with open("config.json") as f:
     licors = json.load(f)["INSTRUMENTS"]
+    print(json.load(f)["PROTOCOL"])
     protocol_file = json.load(f)["PROTOCOL"]["FILE"]
 
 
