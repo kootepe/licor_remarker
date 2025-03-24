@@ -47,7 +47,7 @@ def get_current_scheduled_remark(remarks):
 
 
 # ---------- Threaded MQTT Publisher ----------
-def publish_to_licor(ip, topic, message, licor_name):
+def publish_to_licor(ip, topic, licor_name):
     try:
         client = mqtt.Client()
         client.connect(ip, 1883, 60)
@@ -72,10 +72,9 @@ def publish_remark(remarks):
     for licor_name, licor_config in licors.items():
         ip = licor_config.get("IP")
         topic = "licor/niobrara/system/log_remark"
-        path = protocol_path
         thread = threading.Thread(
             target=publish_to_licor,
-            args=(ip, topic, licor_name, path),
+            args=(ip, topic, licor_name),
             daemon=True,
         )
         threads.append(thread)
