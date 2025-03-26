@@ -87,9 +87,10 @@ def start_publisher_threads(remarks):
         ip = licor_config.get("IP")
         topic = "licor/niobrara/system/log_remark"
         stop_event = threading.Event()
+        interval = 0.1
         thread = threading.Thread(
             target=licor_publisher_thread,
-            args=(ip, topic, licor_name, remarks, stop_event),
+            args=(ip, topic, licor_name, remarks, stop_event, interval),
             daemon=True,
         )
         thread.start()
