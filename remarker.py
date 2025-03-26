@@ -59,13 +59,13 @@ def publish_to_licor(ip, topic, licor_name):
         time.sleep(1)
         client.publish(topic, message)
         time.sleep(1)
-        # client.loop_stop()
-        # client.disconnect()
+        client.loop_stop()
+        client.disconnect()
         logger.info(f"Published '{message}' to {ip} ({licor_name})")
     except Exception as e:
         logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
-        client.loop_stop()
-        client.disconnect()
+        # client.loop_stop()
+        # client.disconnect()
 
 
 # ---------- Publish current remark to all LICORs in threads ----------
