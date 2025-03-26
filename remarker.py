@@ -48,23 +48,20 @@ def get_current_scheduled_remark(remarks):
 
 # ---------- Threaded MQTT Publisher ----------
 def publish_to_licor(ip, topic, licor_name):
+    message = get_current_scheduled_remark(remarks)
+    if not message:
+        logger.warning("No valid remark found for current time.")
+        return
     try:
         client = mqtt.Client()
         client.connect(ip, 1883, 60)
         client.loop_start()
-        message = get_current_scheduled_remark(remarks)
-        if not message:
-            logger.warning("No valid remark found for current time.")
-            return
         client.publish(topic, message)
         client.loop_stop()
         client.disconnect()
         logger.info(f"Published '{message}' to {ip} ({licor_name})")
-        time.sleep(1)
     except Exception as e:
         logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
-        # client.loop_stop()
-        # client.disconnect()
 
 
 # ---------- Publish current remark to all LICORs in threads ----------
@@ -82,6 +79,7 @@ def publish_remark(remarks):
         thread.start()
 
     for thread in threads:
+        logger.info("Started remark publisher thread.")
         thread.join()
 
 
