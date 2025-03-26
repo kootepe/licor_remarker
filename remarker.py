@@ -60,6 +60,7 @@ def publish_to_licor(ip, topic, licor_name):
         client.loop_stop()
         client.disconnect()
         logger.info(f"Published '{message}' to {ip} ({licor_name})")
+        time.sleep(1)
     except Exception as e:
         logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
         # client.loop_stop()
