@@ -56,9 +56,7 @@ def publish_to_licor(ip, topic, licor_name):
         if not message:
             logger.warning("No valid remark found for current time.")
             return
-        time.sleep(1)
         client.publish(topic, message)
-        time.sleep(1)
         client.loop_stop()
         client.disconnect()
         logger.info(f"Published '{message}' to {ip} ({licor_name})")
