@@ -47,40 +47,57 @@ def get_current_scheduled_remark(remarks):
 
 
 # ---------- Threaded MQTT Publisher ----------
-def publish_to_licor(ip, topic, licor_name):
-    message = get_current_scheduled_remark(remarks)
-    if not message:
-        logger.warning("No valid remark found for current time.")
-        return
+# ---------- Persistent Threaded MQTT Publisher ----------
+def licor_publisher_thread(
+    ip, topic, licor_name, remarks, stop_event, interval=10
+):
+    client = mqtt.Client()
     try:
-        client = mqtt.Client()
         client.connect(ip, 1883, 60)
         client.loop_start()
-        client.publish(topic, message)
-        client.loop_stop()
-        client.disconnect()
-        logger.info(f"Published '{message}' to {ip} ({licor_name})")
+        logger.info(f"Started MQTT client for {licor_name} at {ip}")
     except Exception as e:
-        logger.error(f"Failed to publish to {ip} ({licor_name}): {e}")
+        logger.error(f"Failed to connect to {ip} ({licor_name}): {e}")
+        return
+
+    while not stop_event.is_set():
+        message = get_current_scheduled_remark(remarks)
+        if message:
+            try:
+                client.publish(topic, message)
+                logger.info(f"Published '{message}' to {ip} ({licor_name})")
+            except Exception as e:
+                logger.error(f"Publish error to {ip} ({licor_name}): {e}")
+        else:
+            logger.warning(f"No valid remark found for {licor_name}")
+
+        stop_event.wait(interval)
+
+    client.loop_stop()
+    client.disconnect()
+    logger.info(f"Stopped MQTT client for {licor_name}")
 
 
-# ---------- Publish current remark to all LICORs in threads ----------
-def publish_remark(remarks):
+# ---------- Start Threads Once ----------
+def start_publisher_threads(remarks):
     threads = []
+    stop_events = {}
+
     for licor_name, licor_config in licors.items():
         ip = licor_config.get("IP")
         topic = "licor/niobrara/system/log_remark"
+        stop_event = threading.Event()
         thread = threading.Thread(
-            target=publish_to_licor,
-            args=(ip, topic, licor_name),
+            target=licor_publisher_thread,
+            args=(ip, topic, licor_name, remarks, stop_event),
             daemon=True,
         )
-        threads.append(thread)
         thread.start()
+        threads.append(thread)
+        stop_events[licor_name] = stop_event
+        logger.info(f"Started publisher thread for {licor_name}")
 
-    for thread in threads:
-        logger.info("Started remark publisher thread.")
-        thread.join()
+    return threads, stop_events
 
 
 # ---------- Logger Setup ----------
@@ -99,14 +116,21 @@ def init_logger(log_level="info"):
 
 
 # ---------- Main Loop ----------
+
 if __name__ == "__main__":
     logger = init_logger()
     remarks = load_remarks(protocol_path)
 
-    logger.info("Started threaded remark publisher.")
+    logger.info("Started persistent remark publisher threads.")
+    threads, stop_events = start_publisher_threads(remarks)
 
     try:
         while True:
-            publish_remark(remarks)
+            time.sleep(1)
     except KeyboardInterrupt:
-        logger.info("Stopped remark publisher.")
+        logger.info("Stopping remark publishers...")
+        for event in stop_events.values():
+            event.set()
+        for thread in threads:
+            thread.join()
+        logger.info("All remark publisher threads stopped.")
