@@ -29,16 +29,23 @@ def main(ip, path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 1:
-        sys.exit("Provide IP address and optional mqtt path")
+    if len(sys.argv) < 2:
+        sys.exit(
+            """
+    Provide IP address and optional mqtt path, eg.
+        python3 remark_tail.py <IP> <PATH>
+        python3 remark_tail.py 192.168.11.32
+        python3 remark_tail.py 192.168.11.32 remark
+        python3 remark_tail.py 192.168.11.32 licor/niobrara/system/
+
+    If no path provided, listen to everything.
+        """
+        )
     ip = sys.argv[1]
     path = "#"
-    try:
-        arg = sys.argv[2]
-        path = arg
-    except IndexError:
-        # print all paths if no arg provided
-        path = "#"
+    if len(sys.argv) > 2:
+        path = sys.argv[2]
     if path == "remark":
         path = "licor/niobrara/system/log_remark"
+    print(f"Listening to {path} on {ip}")
     main(ip, path)
