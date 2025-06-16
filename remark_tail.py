@@ -34,9 +34,15 @@ if __name__ == "__main__":
             """
     Provide IP address and optional mqtt path, eg.
         python3 remark_tail.py <IP> <PATH>
-        python3 remark_tail.py 192.168.11.32
-        python3 remark_tail.py 192.168.11.32 remark
-        python3 remark_tail.py 192.168.11.32 licor/niobrara/system/
+
+        listen to eveything
+            python3 remark_tail.py 192.168.11.32
+        remark is shortcut for listening to the remark
+            python3 remark_tail.py 192.168.11.32 remark
+        recurcsively listen to all paths below system
+            python3 remark_tail.py 192.168.11.32 licor/niobrara/system/#
+        listen to all paths 1 step below system
+            python3 remark_tail.py 192.168.11.32 licor/niobrara/system/+
 
     If no path provided, listen to everything.
         """
